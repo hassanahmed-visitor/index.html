@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#03080f">
-<title>اللعبة - النسخة الكاملة</title>
+<title>اللعبة - Monster Sync Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
-/* ... التنسيقات الأصلية لضمان بقاء الواجهة مذهلة ... */
 :root{--cyan:#00f5ff;--pink:#ff006e;--purple:#8338ec;--green:#06d6a0;--yellow:#ffd60a;--orange:#fb5607;--bg:#03080f;--card:#0a1628;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);font-family:'Cairo',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden;direction:rtl;}
@@ -17,82 +16,106 @@ body{background:var(--bg);font-family:'Cairo',sans-serif;color:#fff;min-height:1
 .screen.active{display:flex;}
 .card{width:100%;max-width:460px;background:var(--card);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08);margin-bottom:12px;}
 input, textarea{width:100%;padding:14px 16px;background:rgba(0,245,255,0.04);border:1.5px solid rgba(0,245,255,0.2);border-radius:10px;color:#fff;font-family:'Cairo',sans-serif;margin-bottom:10px;}
-.btn{width:100%;padding:15px;border-radius:12px;border:none;font-weight:700;cursor:pointer;margin-bottom:8px;}
+.btn{width:100%;padding:15px;border-radius:12px;border:none;font-weight:700;cursor:pointer;margin-bottom:8px;transition:0.3s;}
+.btn:active{transform:scale(0.95);}
 .btn-cyan{background:var(--cyan);color:#000;}
 .btn-pink{background:rgba(255,0,110,0.15);color:var(--pink);border:1.5px solid var(--pink);}
 .btn-purple{background:rgba(131,56,236,0.15);color:var(--purple);border:1.5px solid var(--purple);}
+.btn-green{background:var(--green);color:#000;}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#0a1628;border-top:1px solid rgba(255,255,255,0.08);display:flex;height:64px;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:11px;border:none;background:none;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:11px;border:none;background:none;cursor:pointer;}
 .nav-item.active{color:var(--cyan);}
 iframe{width:100%;height:45vh;border-radius:16px;border:2px solid var(--purple);margin-top:10px;}
-.player-row{display:flex;align-items:center;justify-content:space-between;padding:10px;background:rgba(255,255,255,0.03);margin-bottom:5px;border-radius:8px;}
+.prize-img{width:120px;height:120px;object-fit:contain;margin:10px auto;display:block;filter:drop-shadow(0 0 10px var(--yellow));}
+.winner-overlay{position:fixed;inset:0;background:rgba(3,8,15,0.95);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.winner-name{font-size:80px;font-weight:900;color:var(--cyan);text-shadow:0 0 30px var(--cyan);animation:winnerAnim 1s infinite;}
+@keyframes winnerAnim{0%,100%{transform:scale(1);}50%{transform:scale(1.1);color:var(--pink);}}
 </style>
 </head>
 <body>
 
+<!-- شاشة الفائز -->
+<div class="winner-overlay" id="winnerOverlay">
+    <p style="font-size:24px">LADIES AND GENTLEMEN...</p>
+    <p style="font-size:32px; color:var(--green)">WE HAVE A WINNER!</p>
+    <div class="winner-name" id="winnerNameDisplay">HASSAN</div>
+    <img id="winnerPrizeImg" class="prize-img" src="" alt="جائزة">
+    <button class="btn btn-cyan" style="width:200px" onclick="closeWinner()">إغلاق</button>
+</div>
+
 <!-- شاشة الدخول -->
 <div class="screen active" id="sHome">
   <div style="text-align:center;margin:50px 0">
-    <h1 style="font-size:50px;color:var(--cyan)">اللعبة</h1>
+    <h1 style="font-size:60px;font-weight:900;color:var(--cyan);text-shadow:0 0 20px var(--cyan)">اللعبة</h1>
   </div>
   <div class="card">
     <input type="text" id="nameInput" placeholder="اكتب اسمك..." oninput="checkSecretCode(this.value)">
-    <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول</button>
+    <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول وتفعيل التنبيهات</button>
   </div>
 </div>
 
 <!-- شاشة التحدي اليومي -->
 <div class="screen" id="sDaily">
-  <h2 style="margin:20px;color:var(--cyan)">تحدي اليوم 📅</h2>
+  <h2 style="margin:20px;color:var(--cyan)">تحدي الساعة ⚡</h2>
   <div class="card" id="dailyChallengeBox">
-    <div id="dailyEmoji" style="font-size:50px;text-align:center">🎲</div>
-    <p id="dailyText" style="text-align:center;font-size:18px;margin:15px 0">جاري تحميل التحدي...</p>
-    <button class="btn btn-cyan" onclick="loadDailyChallenge()">🔄 تحدي جديد</button>
+    <div id="dailyEmoji" style="font-size:60px;text-align:center">🔥</div>
+    <p id="dailyText" style="text-align:center;font-size:20px;font-weight:700;margin:15px 0">جاري انتظار التحدي...</p>
+    <div id="prizeSection" style="text-align:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px">
+        <p id="dailyPrizeName" style="font-weight:900; color:var(--yellow)"></p>
+        <img id="dailyPrizeImg" class="prize-img" src="">
+    </div>
   </div>
 </div>
 
-<!-- شاشة التحدي الحقيقي (للاعب) -->
+<!-- شاشة التحدي الحقيقي -->
 <div class="screen" id="sReal">
-  <h2 style="margin:20px;color:var(--pink)">التحدي الحقيقي 🔥</h2>
+  <div id="joinRealForm" class="card" style="text-align:center">
+    <h2 style="color:var(--pink)">التحدي الحقيقي 🔥</h2>
+    <button class="btn btn-pink" onclick="joinRealChallenge()">🎯 انضم للمنافسة</button>
+  </div>
   <div id="waitingCard" style="display:none;text-align:center" class="card">
     <p>⏳ في انتظار موافقة المتحكم...</p>
   </div>
-  <div id="joinRealForm">
-    <button class="btn btn-pink" onclick="joinRealChallenge()">🎯 انضم للمنافسة</button>
-  </div>
   <div id="inGamePanel" style="display:none;width:95%">
     <iframe id="videoCallFrame" allow="camera;microphone;fullscreen"></iframe>
-    <div class="card" id="realChallengeCard" style="margin-top:10px;display:none">
-        <p id="realChText" style="font-weight:700"></p>
-    </div>
   </div>
 </div>
 
 <!-- شاشة المتحكم -->
 <div class="screen" id="sController">
-  <h2 style="margin:20px;color:var(--purple)">غرفة التحكم 👑</h2>
+  <h2 style="margin:20px;color:var(--purple)">KING'S CONTROL 👑</h2>
   <iframe id="ctrlVideoFrame" allow="camera;microphone;fullscreen"></iframe>
   
   <div class="card">
-    <p style="color:var(--cyan)">قائمة الانتظار (<span id="queueCount">0</span>)</p>
-    <div id="queueList"></div>
+    <p style="color:var(--cyan)">إرسال دعوة (WhatsApp):</p>
+    <input type="tel" id="waPhone" placeholder="رقم الهاتف (بمفتاح الدولة)">
+    <button class="btn btn-cyan" onclick="sendInvite()">✉️ إرسال رابط اللعبة</button>
   </div>
 
   <div class="card">
-    <p style="color:var(--purple)">أرسل تحدي للكل:</p>
-    <textarea id="customChallenge" placeholder="اكتب التحدي هنا..."></textarea>
+    <textarea id="customChallenge" placeholder="اكتب تحدي مخصص..."></textarea>
     <button class="btn btn-purple" onclick="sendChallenge()">⚡ إرسال التحدي</button>
+    <button class="btn btn-pink" onclick="aiTriggerChallenge()">🤖 ذكاء اصطناعي (تحدي عشوائي)</button>
+  </div>
+
+  <div class="card">
+    <input type="text" id="winnerInput" placeholder="اسم الفائز">
+    <button class="btn btn-green" onclick="declareWinner()">🏆 إعلان الفوز (صوت وفيديو)</button>
+  </div>
+
+  <div class="card">
+    <p>الانتظار: <span id="queueCount">0</span></p>
+    <div id="queueList"></div>
   </div>
 </div>
 
-<!-- القائمة السفلية -->
 <div class="bottom-nav" id="bottomNav" style="display:none">
   <button class="nav-item active" onclick="switchTab(0)">📅 يومية</button>
   <button class="nav-item" onclick="switchTab(1)">🔥 حقيقية</button>
 </div>
 
 <script>
-// إعدادات Firebase الخاصة بك
+// إعدادات Firebase
 firebase.initializeApp({
   apiKey:"AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
   authDomain:"myfootballapp-38010.firebaseapp.com",
@@ -102,11 +125,99 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
+// ملفات الصوت
+const soundChallenge = new Audio('https://www.soundboard.com/handler/Downloadaudio.ashx?id=2336a1-8434-4916-9ded-406d8ab3a33b');
+const soundWinner = new Audio('https://www.myinstants.com/media/sounds/ladies-and-gentlemen-we-got-him.mp3');
+
 let myName='', myId='', isController=false;
 
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+// نظام التحديات الـ 50 ألف
+const verbs = ["اقفز", "اكتب", "ارسم", "قلد", "احمل", "المس", "اغسل", "نادي على"];
+const subjects = ["بصلة نية", "كرسي بيدك", "بصوت عالي", "بدون رمش", "10 مرات", "أصعب سر"];
+const prizes = [
+    {n: "iPhone 3D", img: "https://cdn-icons-png.flaticon.com/512/644/644458.png"},
+    {n: "Rolex Gold", img: "https://cdn-icons-png.flaticon.com/512/2955/2955141.png"},
+    {n: "Lambo 2026", img: "https://cdn-icons-png.flaticon.com/512/3202/3202926.png"}
+];
+
+function generateRandomChallenge() {
+    return {
+        text: verbs[Math.floor(Math.random()*verbs.length)] + " " + subjects[Math.floor(Math.random()*subjects.length)],
+        prize: prizes[Math.floor(Math.random()*prizes.length)]
+    };
+}
+
+// تفعيل الإشعارات والصوت
+function enableNotificationsAndSound() {
+    if ("Notification" in window) {
+        Notification.requestPermission();
+    }
+    // تفعيل قناة الصوت عبر تشغيل وإيقاف فوري
+    const unlock = () => {
+        soundChallenge.play().then(()=> { soundChallenge.pause(); soundChallenge.currentTime = 0; });
+        soundWinner.play().then(()=> { soundWinner.pause(); soundWinner.currentTime = 0; });
+        document.removeEventListener('click', unlock);
+    };
+    document.addEventListener('click', unlock);
+}
+
+function enterHome(){
+  myName = document.getElementById('nameInput').value.trim();
+  if(!myName) return alert("اكتب اسمك!");
+  enableNotificationsAndSound(); // تفعيل الميزة
+  myId = 'p' + Date.now();
+  document.getElementById('bottomNav').style.display='flex';
+  switchTab(0);
+  listenForEvents();
+}
+
+function aiTriggerChallenge() {
+    const ch = generateRandomChallenge();
+    db.ref('elleba/currentChallenge').set({
+        text: "🤖 AI Challenge: " + ch.text,
+        prize: ch.prize,
+        ts: Date.now()
+    });
+}
+
+function declareWinner() {
+    const name = document.getElementById('winnerInput').value || "PLAYER";
+    db.ref('elleba/winner').set({name: name, img: document.getElementById('dailyPrizeImg').src, ts: Date.now()});
+}
+
+function listenForEvents(){
+  // استقبال التحدي عند الكل
+  db.ref('elleba/currentChallenge').on('value', snap => {
+    if(snap.exists()){
+        const data = snap.val();
+        document.getElementById('dailyText').textContent = data.text;
+        document.getElementById('dailyPrizeName').textContent = data.prize.n;
+        document.getElementById('dailyPrizeImg').src = data.prize.img;
+        soundChallenge.play(); // يشتغل عند الكل
+        if (Notification.permission === "granted") {
+            new Notification("تحدي جديد في اللعبة! 🔥", { body: data.text });
+        }
+    }
+  });
+
+  // استقبال الفوز عند الكل
+  db.ref('elleba/winner').on('value', snap => {
+    if(snap.exists()){
+        const data = snap.val();
+        document.getElementById('winnerOverlay').style.display = 'flex';
+        document.getElementById('winnerNameDisplay').textContent = data.name;
+        document.getElementById('winnerPrizeImg').src = data.img;
+        soundWinner.play(); // يشتغل عند الكل
+    }
+  });
+
+  db.ref('elleba/playerEvents/' + myId).on('value', snap => {
+    if(snap.exists() && snap.val().event === 'accepted'){
+      document.getElementById('waitingCard').style.display='none';
+      document.getElementById('inGamePanel').style.display='block';
+      document.getElementById('videoCallFrame').src = snap.val().roomUrl + '#userInfo.displayName="' + myName + '"';
+    }
+  });
 }
 
 function checkSecretCode(val){
@@ -117,61 +228,24 @@ function checkSecretCode(val){
   }
 }
 
-function enterHome(){
-  myName = document.getElementById('nameInput').value.trim();
-  if(!myName) return alert("اكتب اسمك!");
-  myId = 'p' + Date.now();
-  document.getElementById('bottomNav').style.display='flex';
-  switchTab(0);
-  listenForEvents();
-}
-
-function switchTab(tab){
-  if(tab===0) showScreen('sDaily'), loadDailyChallenge();
-  if(tab===1) showScreen('sReal');
-  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active', i===tab));
-}
-
-// وظائف التحدي اليومي
-async function loadDailyChallenge(){
-  const challenges = [
-    {text:"اشرب كباية ميه في 5 ثواني", emoji:"💧"},
-    {text:"قلد صوت قطة لمدة 10 ثواني", emoji:"🐱"},
-    {text:"اعمل 10 ضغط فوراً", emoji:"💪"}
-  ];
-  const random = challenges[Math.floor(Math.random()*challenges.length)];
-  document.getElementById('dailyText').textContent = random.text;
-  document.getElementById('dailyEmoji').textContent = random.emoji;
-}
-
-// وظائف Jitsi المجانية
-function createJitsiRoom(name){
-  return 'https://meet.jit.si/ElLeba-' + name.replace(/\s+/g, '-');
-}
-
 function startController(){
-  const roomUrl = createJitsiRoom('Room-' + Date.now());
+  const roomUrl = 'https://meet.jit.si/ElLeba-Room-' + Date.now();
   document.getElementById('ctrlVideoFrame').src = roomUrl + '#userInfo.displayName="المتحكم👑"';
   db.ref('elleba/gameRoom').set(roomUrl);
-  
-  // مراقبة الانتظار
   db.ref('elleba/queue').on('value', snap => {
     const list = snap.val() || {};
-    const keys = Object.keys(list);
-    document.getElementById('queueCount').textContent = keys.length;
     let html = '';
-    keys.forEach(k => {
-      html += `<div class="player-row"><span>${list[k].name}</span>
-               <button class="btn-cyan" onclick="acceptPlayer('${k}','${list[k].name}')">قبول</button></div>`;
+    Object.keys(list).forEach(k => {
+      html += `<div class="card" style="display:flex; justify-content:space-between"><span>${list[k].name}</span><button onclick="acceptPlayer('${k}')">قبول</button></div>`;
     });
     document.getElementById('queueList').innerHTML = html;
+    document.getElementById('queueCount').textContent = Object.keys(list).length;
   });
 }
 
-function acceptPlayer(id, name){
+function acceptPlayer(id){
   db.ref('elleba/gameRoom').once('value', s => {
-    const url = s.val();
-    db.ref('elleba/playerEvents/' + id).set({event:'accepted', roomUrl: url});
+    db.ref('elleba/playerEvents/' + id).set({event:'accepted', roomUrl: s.val()});
     db.ref('elleba/queue/' + id).remove();
   });
 }
@@ -182,29 +256,30 @@ function joinRealChallenge(){
   document.getElementById('waitingCard').style.display='block';
 }
 
-function sendChallenge(){
-  const text = document.getElementById('customChallenge').value;
-  db.ref('elleba/currentChallenge').set({text: text});
+function sendInvite() {
+    const phone = document.getElementById('waPhone').value;
+    const msg = `ادخل اللعبة الآن: ${window.location.href}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-function listenForEvents(){
-  // استقبال القبول
-  db.ref('elleba/playerEvents/' + myId).on('value', snap => {
-    if(snap.exists() && snap.val().event === 'accepted'){
-      document.getElementById('waitingCard').style.display='none';
-      document.getElementById('inGamePanel').style.display='block';
-      document.getElementById('videoCallFrame').src = snap.val().roomUrl + '#userInfo.displayName="' + myName + '"';
-    }
-  });
-  
-  // استقبال التحدي
-  db.ref('elleba/currentChallenge').on('value', snap => {
-    if(snap.exists()){
-      document.getElementById('realChallengeCard').style.display='block';
-      document.getElementById('realChText').textContent = "التحدي: " + snap.val().text;
-    }
-  });
+function sendChallenge(){
+    const text = document.getElementById('customChallenge').value;
+    const ch = generateRandomChallenge();
+    db.ref('elleba/currentChallenge').set({text: text, prize: ch.prize, ts: Date.now()});
 }
+
+function switchTab(tab){
+  if(tab===0) showScreen('sDaily');
+  if(tab===1) showScreen('sReal');
+  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active', i===tab));
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function closeWinner() { document.getElementById('winnerOverlay').style.display = 'none'; }
 </script>
 </body>
 </html>
