@@ -1,114 +1,209 @@
-<!-- استبدل الكود القديم بهذا الكود بالكامل -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#03080f">
-<title>اللعبة - نسخة جيتسي</title>
+<title>اللعبة - النسخة الكاملة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
-/* نفس التنسيقات السابقة بدون تغيير لضمان الشكل الجمالي */
+/* ... التنسيقات الأصلية لضمان بقاء الواجهة مذهلة ... */
 :root{--cyan:#00f5ff;--pink:#ff006e;--purple:#8338ec;--green:#06d6a0;--yellow:#ffd60a;--orange:#fb5607;--bg:#03080f;--card:#0a1628;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);font-family:'Cairo',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden;direction:rtl;}
-/* ... باقي الـ CSS المذهل بتاعك ... */
 .screen{position:relative;z-index:1;min-height:100vh;display:none;flex-direction:column;align-items:center;padding:0 0 80px;}
 .screen.active{display:flex;}
-.card{width:100%;max-width:460px;background:var(--card);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,.08);margin-bottom:12px;}
-input{width:100%;padding:14px 16px;background:rgba(0,245,255,0.04);border:1.5px solid rgba(0,245,255,0.2);border-radius:10px;color:#fff;text-align:right;}
-.btn{width:100%;padding:15px;border-radius:12px;border:none;font-weight:700;cursor:pointer;}
+.card{width:100%;max-width:460px;background:var(--card);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08);margin-bottom:12px;}
+input, textarea{width:100%;padding:14px 16px;background:rgba(0,245,255,0.04);border:1.5px solid rgba(0,245,255,0.2);border-radius:10px;color:#fff;font-family:'Cairo',sans-serif;margin-bottom:10px;}
+.btn{width:100%;padding:15px;border-radius:12px;border:none;font-weight:700;cursor:pointer;margin-bottom:8px;}
 .btn-cyan{background:var(--cyan);color:#000;}
-#videoCallFrame, #ctrlVideoFrame{width:100%;height:60vh;border-radius:16px;border:2px solid var(--cyan);margin-top:10px;}
+.btn-pink{background:rgba(255,0,110,0.15);color:var(--pink);border:1.5px solid var(--pink);}
+.btn-purple{background:rgba(131,56,236,0.15);color:var(--purple);border:1.5px solid var(--purple);}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#0a1628;border-top:1px solid rgba(255,255,255,0.08);display:flex;height:64px;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:11px;border:none;background:none;}
+.nav-item.active{color:var(--cyan);}
+iframe{width:100%;height:45vh;border-radius:16px;border:2px solid var(--purple);margin-top:10px;}
+.player-row{display:flex;align-items:center;justify-content:space-between;padding:10px;background:rgba(255,255,255,0.03);margin-bottom:5px;border-radius:8px;}
 </style>
 </head>
 <body>
 
-<!-- ... الهيكل التنظيمي (السكاشن) ... -->
+<!-- شاشة الدخول -->
 <div class="screen active" id="sHome">
-  <h1 style="color:var(--cyan);text-align:center;margin-top:50px">اللعبة</h1>
+  <div style="text-align:center;margin:50px 0">
+    <h1 style="font-size:50px;color:var(--cyan)">اللعبة</h1>
+  </div>
   <div class="card">
     <input type="text" id="nameInput" placeholder="اكتب اسمك..." oninput="checkSecretCode(this.value)">
-    <button class="btn btn-cyan" onclick="enterHome()" style="margin-top:10px">🎮 دخول</button>
+    <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول</button>
   </div>
 </div>
 
+<!-- شاشة التحدي اليومي -->
+<div class="screen" id="sDaily">
+  <h2 style="margin:20px;color:var(--cyan)">تحدي اليوم 📅</h2>
+  <div class="card" id="dailyChallengeBox">
+    <div id="dailyEmoji" style="font-size:50px;text-align:center">🎲</div>
+    <p id="dailyText" style="text-align:center;font-size:18px;margin:15px 0">جاري تحميل التحدي...</p>
+    <button class="btn btn-cyan" onclick="loadDailyChallenge()">🔄 تحدي جديد</button>
+  </div>
+</div>
+
+<!-- شاشة التحدي الحقيقي (للاعب) -->
 <div class="screen" id="sReal">
-  <div id="inGamePanel" style="display:none; width:90%">
-    <iframe id="videoCallFrame" allow="camera;microphone;fullscreen;display-capture"></iframe>
+  <h2 style="margin:20px;color:var(--pink)">التحدي الحقيقي 🔥</h2>
+  <div id="waitingCard" style="display:none;text-align:center" class="card">
+    <p>⏳ في انتظار موافقة المتحكم...</p>
   </div>
-  <button id="joinBtn" class="btn btn-cyan" onclick="joinRealChallenge()">انضم للتحدي</button>
+  <div id="joinRealForm">
+    <button class="btn btn-pink" onclick="joinRealChallenge()">🎯 انضم للمنافسة</button>
+  </div>
+  <div id="inGamePanel" style="display:none;width:95%">
+    <iframe id="videoCallFrame" allow="camera;microphone;fullscreen"></iframe>
+    <div class="card" id="realChallengeCard" style="margin-top:10px;display:none">
+        <p id="realChText" style="font-weight:700"></p>
+    </div>
+  </div>
 </div>
 
+<!-- شاشة المتحكم -->
 <div class="screen" id="sController">
-  <h2 style="color:var(--purple)">لوحة التحكم 👑</h2>
-  <iframe id="ctrlVideoFrame" allow="camera;microphone;fullscreen;display-capture"></iframe>
+  <h2 style="margin:20px;color:var(--purple)">غرفة التحكم 👑</h2>
+  <iframe id="ctrlVideoFrame" allow="camera;microphone;fullscreen"></iframe>
+  
+  <div class="card">
+    <p style="color:var(--cyan)">قائمة الانتظار (<span id="queueCount">0</span>)</p>
+    <div id="queueList"></div>
+  </div>
+
+  <div class="card">
+    <p style="color:var(--purple)">أرسل تحدي للكل:</p>
+    <textarea id="customChallenge" placeholder="اكتب التحدي هنا..."></textarea>
+    <button class="btn btn-purple" onclick="sendChallenge()">⚡ إرسال التحدي</button>
+  </div>
+</div>
+
+<!-- القائمة السفلية -->
+<div class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="nav-item active" onclick="switchTab(0)">📅 يومية</button>
+  <button class="nav-item" onclick="switchTab(1)">🔥 حقيقية</button>
 </div>
 
 <script>
-// إعدادات Firebase (اتأكد إنها صحيحة)
+// إعدادات Firebase الخاصة بك
 firebase.initializeApp({
   apiKey:"AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
   authDomain:"myfootballapp-38010.firebaseapp.com",
   databaseURL:"https://myfootballapp-38010-default-rtdb.firebaseio.com",
   projectId:"myfootballapp-38010",
-  storageBucket:"myfootballapp-38010.firebasestorage.app",
   appId:"1:240430350266:web:5a6b766e8f1f001479a783"
 });
 const db = firebase.database();
 
 let myName='', myId='', isController=false;
 
-// --- وظيفة Jitsi الجديدة ---
-function createJitsiRoom(roomName){
-  // بنعمل اسم غرفة نظيف ومميز
-  const clean = roomName.replace(/[^a-zA-Z0-9]/g,'').substring(0,30);
-  return 'https://meet.jit.si/ElLeba-' + clean;
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
 function checkSecretCode(val){
   if(val.trim().toLowerCase()==='htpsl') {
-      isController = true;
-      showScreen('sController');
-      startController();
+    isController=true;
+    showScreen('sController');
+    startController();
   }
 }
 
 function enterHome(){
-    myName = document.getElementById('nameInput').value;
-    myId = 'p' + Date.now();
-    showScreen('sReal');
-    listenForEvents();
+  myName = document.getElementById('nameInput').value.trim();
+  if(!myName) return alert("اكتب اسمك!");
+  myId = 'p' + Date.now();
+  document.getElementById('bottomNav').style.display='flex';
+  switchTab(0);
+  listenForEvents();
+}
+
+function switchTab(tab){
+  if(tab===0) showScreen('sDaily'), loadDailyChallenge();
+  if(tab===1) showScreen('sReal');
+  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active', i===tab));
+}
+
+// وظائف التحدي اليومي
+async function loadDailyChallenge(){
+  const challenges = [
+    {text:"اشرب كباية ميه في 5 ثواني", emoji:"💧"},
+    {text:"قلد صوت قطة لمدة 10 ثواني", emoji:"🐱"},
+    {text:"اعمل 10 ضغط فوراً", emoji:"💪"}
+  ];
+  const random = challenges[Math.floor(Math.random()*challenges.length)];
+  document.getElementById('dailyText').textContent = random.text;
+  document.getElementById('dailyEmoji').textContent = random.emoji;
+}
+
+// وظائف Jitsi المجانية
+function createJitsiRoom(name){
+  return 'https://meet.jit.si/ElLeba-' + name.replace(/\s+/g, '-');
 }
 
 function startController(){
-    const roomUrl = createJitsiRoom('ctrl' + Date.now());
-    // إضافة إعدادات Jitsi للرابط
-    document.getElementById('ctrlVideoFrame').src = roomUrl + '#userInfo.displayName=%22المتحكم👑%22&config.startWithVideoMuted=false';
-    db.ref('elleba/gameRoom').set(roomUrl);
+  const roomUrl = createJitsiRoom('Room-' + Date.now());
+  document.getElementById('ctrlVideoFrame').src = roomUrl + '#userInfo.displayName="المتحكم👑"';
+  db.ref('elleba/gameRoom').set(roomUrl);
+  
+  // مراقبة الانتظار
+  db.ref('elleba/queue').on('value', snap => {
+    const list = snap.val() || {};
+    const keys = Object.keys(list);
+    document.getElementById('queueCount').textContent = keys.length;
+    let html = '';
+    keys.forEach(k => {
+      html += `<div class="player-row"><span>${list[k].name}</span>
+               <button class="btn-cyan" onclick="acceptPlayer('${k}','${list[k].name}')">قبول</button></div>`;
+    });
+    document.getElementById('queueList').innerHTML = html;
+  });
+}
+
+function acceptPlayer(id, name){
+  db.ref('elleba/gameRoom').once('value', s => {
+    const url = s.val();
+    db.ref('elleba/playerEvents/' + id).set({event:'accepted', roomUrl: url});
+    db.ref('elleba/queue/' + id).remove();
+  });
 }
 
 function joinRealChallenge(){
-    db.ref('elleba/queue/' + myId).set({name: myName});
-    alert("تم إرسال طلبك للمتحكم!");
+  db.ref('elleba/queue/' + myId).set({name: myName});
+  document.getElementById('joinRealForm').style.display='none';
+  document.getElementById('waitingCard').style.display='block';
+}
+
+function sendChallenge(){
+  const text = document.getElementById('customChallenge').value;
+  db.ref('elleba/currentChallenge').set({text: text});
 }
 
 function listenForEvents(){
-    db.ref('elleba/playerEvents/' + myId).on('value', snap => {
-        if(snap.exists() && snap.val().event === 'accepted'){
-            const roomUrl = snap.val().roomUrl;
-            document.getElementById('inGamePanel').style.display = 'block';
-            document.getElementById('joinBtn').style.display = 'none';
-            document.getElementById('videoCallFrame').src = roomUrl + '#userInfo.displayName=' + encodeURIComponent(myName);
-        }
-    });
-}
-
-function showScreen(id){
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+  // استقبال القبول
+  db.ref('elleba/playerEvents/' + myId).on('value', snap => {
+    if(snap.exists() && snap.val().event === 'accepted'){
+      document.getElementById('waitingCard').style.display='none';
+      document.getElementById('inGamePanel').style.display='block';
+      document.getElementById('videoCallFrame').src = snap.val().roomUrl + '#userInfo.displayName="' + myName + '"';
+    }
+  });
+  
+  // استقبال التحدي
+  db.ref('elleba/currentChallenge').on('value', snap => {
+    if(snap.exists()){
+      document.getElementById('realChallengeCard').style.display='block';
+      document.getElementById('realChText').textContent = "التحدي: " + snap.val().text;
+    }
+  });
 }
 </script>
 </body>
