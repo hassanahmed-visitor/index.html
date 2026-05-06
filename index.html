@@ -1,198 +1,283 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>اللعبة - النسخة الأسطورية</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<style>
-:root{--cyan:#00f5ff;--pink:#ff006e;--purple:#8338ec;--green:#06d6a0;--yellow:#ffd60a;--bg:#03080f;--card:#0a1628;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);font-family:'Cairo',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>مسلسل اللعبة - النسخة الوحش</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root {
+            --cyan: #00f5ff;
+            --pink: #ff006e;
+            --purple: #8338ec;
+            --yellow: #ffd60a;
+            --bg: #03080f;
+            --card: #0a1628;
+        }
 
-/* شاشة الفوز الأسطورية (زي الفيديو) */
-.winner-overlay {
-    position: fixed; inset: 0; background: radial-gradient(circle, rgba(255,0,110,0.5) 0%, rgba(3,8,15,1) 100%);
-    z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-}
-.winner-name-vfx {
-    font-size: 80px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--pink), 0 0 40px var(--pink);
-    letter-spacing: 5px; transform: skewX(-10deg); animation: slideIn 0.5s ease-out;
-}
-.coin { position: absolute; width: 50px; height: 50px; background: var(--yellow); border-radius: 50%; border: 3px solid #b8860b; z-index: 5; animation: coinFall 3s linear infinite; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); font-family: 'Cairo', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
 
-/* تنسيقات الواجهة */
-.screen{display:none; flex-direction:column; align-items:center; padding:20px;}
-.screen.active{display:flex;}
-.card{width:100%; max-width:400px; background:var(--card); border-radius:15px; padding:20px; border:1px solid rgba(255,255,255,0.1); margin-top:20px;}
-.btn{width:100%; padding:15px; border:none; border-radius:10px; font-weight:700; cursor:pointer; margin-top:10px;}
-.btn-cyan{background:var(--cyan); color:#000;}
-.btn-purple{background:var(--purple); color:#fff;}
-input{width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--cyan); border-radius:8px; color:#fff; margin-bottom:10px;}
-iframe{width:100%; height:40vh; border-radius:15px; border:2px solid var(--purple); margin-top:15px;}
+        /* --- تيمبليت الفوز الأسطوري --- */
+        .winner-overlay {
+            position: fixed; inset: 0; 
+            background: radial-gradient(circle, rgba(255,0,110,0.6) 0%, rgba(3,8,15,1) 100%);
+            z-index: 2000; display: none; flex-direction: column; align-items: center; 
+            justify-content: center; text-align: center;
+        }
+        .winner-name-vfx {
+            font-size: 80px; font-weight: 900; color: #fff; 
+            text-shadow: 0 0 20px var(--pink), 0 0 40px var(--pink);
+            transform: skewX(-10deg); animation: slideIn 0.5s ease-out; margin: 20px 0;
+        }
+        .coin { 
+            position: absolute; width: 40px; height: 40px; background: var(--yellow); 
+            border-radius: 50%; border: 2px solid #b8860b; z-index: 5; 
+            animation: coinFall 2.5s linear infinite; 
+        }
 
-@keyframes coinFall { 0% { transform: translateY(-100vh) rotate(0); } 100% { transform: translateY(100vh) rotate(720deg); } }
-@keyframes slideIn { from { transform: translateX(100%) skewX(-10deg); opacity: 0; } to { transform: translateX(0) skewX(-10deg); opacity: 1; } }
-</style>
+        /* --- تنسيقات الواجهة العامة --- */
+        .screen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 100px; width: 100%; }
+        .screen.active { display: flex; }
+        
+        .card { 
+            width: 100%; max-width: 450px; background: var(--card); border-radius: 20px; 
+            padding: 25px; border: 1px solid rgba(255,255,255,0.1); margin-top: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .btn { 
+            width: 100%; padding: 16px; border: none; border-radius: 12px; 
+            font-weight: 700; cursor: pointer; margin-top: 12px; font-size: 16px; transition: 0.3s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-cyan { background: var(--cyan); color: #000; box-shadow: 0 0 15px rgba(0, 245, 255, 0.3); }
+        .btn-pink { background: var(--pink); color: #fff; box-shadow: 0 0 15px rgba(255, 0, 110, 0.3); }
+        
+        input, textarea { 
+            width: 100%; padding: 14px; background: rgba(255,255,255,0.05); 
+            border: 1.5px solid rgba(0,245,255,0.2); border-radius: 10px; 
+            color: #fff; margin-bottom: 12px; font-family: inherit; outline: none;
+        }
+        input:focus { border-color: var(--cyan); }
+
+        /* --- القائمة السفلية --- */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 75px; 
+            background: #060d18; display: none; justify-content: space-around; 
+            align-items: center; border-top: 1px solid rgba(255,255,255,0.08); z-index: 100; 
+        }
+        .nav-item { 
+            color: rgba(255,255,255,0.3); font-size: 13px; font-weight: 700; 
+            cursor: pointer; display: flex; flex-direction: column; align-items: center;
+        }
+        .nav-item.active { color: var(--cyan); }
+
+        iframe { width: 100%; height: 45vh; border-radius: 15px; border: 2px solid var(--purple); margin-top: 15px; }
+
+        @keyframes coinFall { 0% { transform: translateY(-100vh) rotate(0); opacity:1; } 100% { transform: translateY(100vh) rotate(360deg); opacity:0; } }
+        @keyframes slideIn { from { transform: translateX(100%) skewX(-10deg); opacity:0; } to { transform: translateX(0) skewX(-10deg); opacity:1; } }
+    </style>
 </head>
 <body>
 
-<audio id="winnerAudio" src="https://ia800108.us.archive.org/15/items/win_202102/winner.mp3"></audio>
+    <audio id="winnerAudio" src="https://ia800108.us.archive.org/15/items/win_202102/winner.mp3"></audio>
 
-<div class="winner-overlay" id="winnerOverlay">
-    <div style="font-size:20px; color:var(--cyan)">LADIES AND GENTLEMEN...</div>
-    <div style="font-size:30px; margin-bottom:20px">WE HAVE A WINNER!</div>
-    <div class="winner-name-vfx" id="winnerNameDisplay">HASSAN</div>
-    <button class="btn btn-cyan" style="width:150px; margin-top:40px" onclick="document.getElementById('winnerOverlay').style.display='none'">إغلاق</button>
-</div>
-
-<div id="sHome" class="screen active">
-    <h1 style="font-size:50px; color:var(--cyan); margin-top:50px">اللعبة</h1>
-    <div class="card">
-        <input type="text" id="nameInput" placeholder="اكتب اسمك..." oninput="checkSecretCode(this.value)">
-        <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول</button>
+    <div class="winner-overlay" id="winnerOverlay">
+        <div style="font-size:18px; color:var(--cyan); letter-spacing:3px">LADIES AND GENTLEMEN...</div>
+        <div style="font-size:26px; font-weight:700">WE HAVE A WINNER!</div>
+        <div class="winner-name-vfx" id="winnerNameDisplay">HASSAN</div>
+        <button class="btn btn-cyan" style="width:140px" onclick="document.getElementById('winnerOverlay').style.display='none'">استمرار</button>
     </div>
-</div>
 
-<div id="sReal" class="screen">
-    <h2 id="playerTitle">أهلاً بك</h2>
-    <div class="card" id="challengeBox" style="display:none">
-        <p style="color:var(--yellow)">التحدي الحالي:</p>
-        <p id="challengeText" style="font-size:20px; font-weight:700"></p>
+    <div id="sHome" class="screen active">
+        <h1 style="font-size:70px; color:var(--cyan); margin-top:60px; font-weight:900; text-shadow: 0 0 20px var(--cyan);">اللعبة</h1>
+        <div class="card">
+            <input type="text" id="nameInput" placeholder="اكتب اسمك الحقيقي..." oninput="checkSecretCode(this.value)">
+            <button class="btn btn-cyan" onclick="enterHome()">🎮 ابدأ اللعب الآن</button>
+        </div>
     </div>
-    <button id="joinBtn" class="btn btn-purple" onclick="joinGame()">🎯 انضم للتحدي الحقيقي</button>
-    <div id="gamePanel" style="display:none; width:100%">
-        <iframe id="videoFrame" allow="camera;microphone;fullscreen"></iframe>
+
+    <div id="sDaily" class="screen">
+        <h2 style="color:var(--cyan); margin-bottom:10px">التحدي اليومي 📅</h2>
+        <div class="card">
+            <div style="font-size:60px">🎯</div>
+            <p id="dailyTaskText" style="font-size:24px; font-weight:700; margin:20px 0; color: #fff;">في انتظار تحدي الإمبراطور...</p>
+            <div style="background: rgba(255,214,10,0.1); padding: 10px; border-radius: 8px; color: var(--yellow); font-size: 14px;">
+                نفذ التحدي وابعته على الجروب عشان تكسب!
+            </div>
+        </div>
     </div>
-</div>
 
-<div id="sController" class="screen">
-    <h2 style="color:var(--purple)">غرفة التحكم 👑</h2>
-    <iframe id="adminVideoFrame" allow="camera;microphone;fullscreen"></iframe>
-    <div class="card">
-        <input type="text" id="winnerName" placeholder="اسم الفائز لإعلان الفوز">
-        <button class="btn btn-cyan" onclick="announceWinner()">🏆 إعلان الفوز (Ladies & Gentlemen)</button>
+    <div id="sReal" class="screen">
+        <h2 style="color:var(--pink); margin-bottom:10px">التحدي الحقيقي 🔥</h2>
+        <div id="waitBox" class="card">
+            <p style="margin-bottom:15px">انضم الآن لمواجهة اللاعبين والمتحكم بث مباشر</p>
+            <button id="joinBtn" class="btn btn-pink" onclick="joinQueue()">🎯 طلب انضمام للغرفة</button>
+        </div>
+        <div id="videoBox" style="display:none; width:100%">
+            <iframe id="videoIframe" allow="camera;microphone;fullscreen"></iframe>
+        </div>
     </div>
-    <div class="card">
-        <textarea id="taskInput" placeholder="اكتب تحدي جديد..." style="width:100%; height:60px; background:none; border:1px solid var(--purple); color:#fff; padding:10px; border-radius:10px"></textarea>
-        <button class="btn btn-purple" onclick="sendTask()">⚡ إرسال التحدي</button>
+
+    <div id="sAdmin" class="screen">
+        <h2 style="color:var(--purple)">لوحة تحكم الإمبراطور 👑</h2>
+        <div class="card">
+            <p style="margin-bottom:10px">إرسال تحدي الساعة (للجميع):</p>
+            <textarea id="dailyInput" placeholder="اكتب نص التحدي هنا..."></textarea>
+            <button class="btn btn-cyan" onclick="sendDaily()">⚡ إرسال التحدي فوراً</button>
+        </div>
+        <div class="card">
+            <p style="margin-bottom:10px">إعلان الفائز (صوت المسلسل + عملات):</p>
+            <input type="text" id="winNameInput" placeholder="اسم الفائز">
+            <button class="btn btn-pink" onclick="fireWinner()">🏆 إعلان الفوز (الكل سيسمع)</button>
+        </div>
+        <div id="adminQueue" class="card">
+            <p style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">طلبات الفيديو (<span id="qNum">0</span>)</p>
+            <div id="queueItems"></div>
+        </div>
     </div>
-    <div id="queueList" class="card">
-        <p>قائمة الانتظار: <span id="qCount">0</span></p>
+
+    <div class="bottom-nav" id="mainNav">
+        <div class="nav-item active" id="nav0" onclick="tab(0)"><span>📅</span> يومي</div>
+        <div class="nav-item" id="nav1" onclick="tab(1)"><span>🔥</span> حقيقي</div>
     </div>
-</div>
 
-<script>
-firebase.initializeApp({
-  apiKey: "AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
-  databaseURL: "https://myfootballapp-38010-default-rtdb.firebaseio.com",
-  projectId: "myfootballapp-38010",
-});
-const db = firebase.database();
+    <script>
+        // --- إعدادات Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
+            databaseURL: "https://myfootballapp-38010-default-rtdb.firebaseio.com",
+            projectId: "myfootballapp-38010",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-let myName = '', myId = '';
+        let user = '', uid = '';
 
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
-
-function checkSecretCode(val) {
-    if(val.toLowerCase() === 'htpsl') {
-        showScreen('sController');
-        initAdmin();
-    }
-}
-
-function enterHome() {
-    myName = document.getElementById('nameInput').value.trim();
-    if(!myName) return;
-    myId = 'p' + Date.now();
-    showScreen('sReal');
-    document.getElementById('playerTitle').textContent = "أهلاً يا " + myName;
-    listenEvents();
-}
-
-function initAdmin() {
-    const room = "https://meet.jit.si/ElLeba-" + Date.now();
-    document.getElementById('adminVideoFrame').src = room + '#userInfo.displayName="المتحكم👑"';
-    db.ref('game/room').set(room);
-    
-    db.ref('game/queue').on('value', snap => {
-        const list = snap.val() || {};
-        const keys = Object.keys(list);
-        document.getElementById('qCount').textContent = keys.length;
-        let h = '';
-        keys.forEach(k => {
-            h += `<div style="display:flex; justify-content:space-between; margin-top:10px">
-                  <span>${list[k]}</span><button onclick="accept('${k}')">قبول</button></div>`;
-        });
-        document.getElementById('queueList').innerHTML = h;
-    });
-}
-
-function accept(id) {
-    db.ref('game/room').once('value', s => {
-        db.ref('game/events/' + id).set({ type: 'accepted', url: s.val() });
-        db.ref('game/queue/' + id).remove();
-    });
-}
-
-function joinGame() {
-    db.ref('game/queue/' + myId).set(myName);
-    document.getElementById('joinBtn').textContent = "⏳ في انتظار القبول...";
-}
-
-function sendTask() {
-    const t = document.getElementById('taskInput').value;
-    db.ref('game/task').set({ text: t, ts: Date.now() });
-}
-
-function announceWinner() {
-    const name = document.getElementById('winnerName').value || "HASSAN";
-    db.ref('game/winner').set({ name: name.toUpperCase(), ts: Date.now() });
-}
-
-function listenEvents() {
-    db.ref('game/events/' + myId).on('value', snap => {
-        if(snap.exists() && snap.val().type === 'accepted') {
-            document.getElementById('gamePanel').style.display = 'block';
-            document.getElementById('joinBtn').style.display = 'none';
-            document.getElementById('videoFrame').src = snap.val().url + '#userInfo.displayName="' + myName + '"';
+        // الدخول السري للمتحكم
+        function checkSecretCode(v) {
+            if(v.toLowerCase() === 'htpsl') {
+                showS('sAdmin');
+                initAdmin();
+            }
         }
-    });
 
-    db.ref('game/task').on('value', snap => {
-        if(snap.exists()) {
-            document.getElementById('challengeBox').style.display = 'block';
-            document.getElementById('challengeText').textContent = snap.val().text;
+        // الدخول العادي
+        function enterHome() {
+            user = document.getElementById('nameInput').value.trim();
+            if(!user) return alert("اكتب اسمك الأول!");
+            uid = 'u' + Date.now();
+            document.getElementById('mainNav').style.display = 'flex';
+            tab(0);
+            startSync();
+            
+            // تفعيل الصوت (قانون المتصفح)
+            const audio = document.getElementById('winnerAudio');
+            audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {});
         }
-    });
 
-    db.ref('game/winner').on('value', snap => {
-        if(snap.exists()) {
-            const data = snap.val();
-            const overlay = document.getElementById('winnerOverlay');
-            overlay.style.display = 'flex';
-            document.getElementById('winnerNameDisplay').textContent = data.name;
-            document.getElementById('winnerAudio').play();
-            createCoins();
+        function showS(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
-    });
-}
 
-function createCoins() {
-    for(let i=0; i<20; i++) {
-        let c = document.createElement('div');
-        c.className = 'coin';
-        c.style.left = Math.random() * 100 + 'vw';
-        c.style.animationDelay = Math.random() * 2 + 's';
-        document.getElementById('winnerOverlay').appendChild(c);
-        setTimeout(() => c.remove(), 3000);
-    }
-}
-</script>
+        function tab(n) {
+            if(n===0) showS('sDaily');
+            if(n===1) showS('sReal');
+            document.querySelectorAll('.nav-item').forEach((el, i) => {
+                el.classList.toggle('active', i === n);
+            });
+        }
+
+        // --- وظائف المتحكم ---
+        function sendDaily() {
+            const txt = document.getElementById('dailyInput').value;
+            if(!txt) return;
+            db.ref('game/daily').set({ text: txt, ts: Date.now() });
+            alert("تم إرسال التحدي!");
+        }
+
+        function fireWinner() {
+            const name = document.getElementById('winNameInput').value || "HASSAN";
+            db.ref('game/winner').set({ name: name.toUpperCase(), ts: Date.now() });
+        }
+
+        function initAdmin() {
+            db.ref('game/queue').on('value', snap => {
+                const data = snap.val() || {};
+                const keys = Object.keys(data);
+                document.getElementById('qNum').textContent = keys.length;
+                let html = '';
+                keys.forEach(k => {
+                    html += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                            <span>${data[k]}</span>
+                            <button class="btn btn-cyan" style="width:80px; margin:0; padding:8px;" onclick="acceptUser('${k}')">قبول</button>
+                        </div>`;
+                });
+                document.getElementById('queueItems').innerHTML = html;
+            });
+        }
+
+        function acceptUser(id) {
+            db.ref('game/events/' + id).set({ type: 'go', url: 'https://meet.jit.si/ElLebaRoom-' + Date.now() });
+            db.ref('game/queue/' + id).remove();
+        }
+
+        // --- وظائف اللاعب ومزامنة البيانات ---
+        function joinQueue() {
+            db.ref('game/queue/' + uid).set(user);
+            document.getElementById('joinBtn').textContent = "⌛ في انتظار موافقة المتحكم...";
+            document.getElementById('joinBtn').disabled = true;
+        }
+
+        function startSync() {
+            // مزامنة التحدي اليومي
+            db.ref('game/daily').on('value', snap => {
+                if(snap.exists()) {
+                    document.getElementById('dailyTaskText').textContent = snap.val().text;
+                }
+            });
+
+            // مزامنة الفوز الأسطوري (الحدث الأهم)
+            db.ref('game/winner').on('value', snap => {
+                if(snap.exists()) {
+                    const data = snap.val();
+                    const overlay = document.getElementById('winnerOverlay');
+                    overlay.style.display = 'flex';
+                    document.getElementById('winnerNameDisplay').textContent = data.name;
+                    
+                    const audio = document.getElementById('winnerAudio');
+                    audio.currentTime = 0;
+                    audio.play();
+                    
+                    // توليد عملات ذهبية
+                    for(let i=0; i<30; i++) createCoin();
+                }
+            });
+
+            // مزامنة قبول الفيديو
+            db.ref('game/events/' + uid).on('value', snap => {
+                if(snap.exists() && snap.val().type === 'go') {
+                    document.getElementById('waitBox').style.display = 'none';
+                    document.getElementById('videoBox').style.display = 'block';
+                    document.getElementById('videoIframe').src = snap.val().url + '#userInfo.displayName="' + user + '"';
+                }
+            });
+        }
+
+        function createCoin() {
+            let c = document.createElement('div');
+            c.className = 'coin';
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.animationDelay = Math.random() * 2 + 's';
+            document.getElementById('winnerOverlay').appendChild(c);
+            setTimeout(() => c.remove(), 3000);
+        }
+    </script>
 </body>
 </html>
