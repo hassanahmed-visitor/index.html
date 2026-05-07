@@ -1,57 +1,39 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>اللعبة - الإصدار النهائي الأسطوري</title>
+    <title>اللعبة - الإصدار النهائي المصلح</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-
     <style>
         :root { --cyan: #00f5ff; --pink: #ff006e; --purple: #8338ec; --yellow: #ffd60a; --bg: #03080f; --card: #0a1628; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); font-family: 'Cairo', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
-
-        /* شاشة الفوز الأسطورية (المزامنة مع الفيديو) */
-        .winner-overlay {
-            position: fixed; inset: 0; background: radial-gradient(circle, rgba(255,0,110,0.6) 0%, rgba(3,8,15,1) 100%);
-            z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-        }
-        .winner-name-vfx {
-            font-size: 80px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--pink), 0 0 40px var(--pink);
-            transform: skewX(-10deg); animation: slideIn 0.5s ease-out; margin: 20px 0;
-        }
+        .winner-overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(255,0,110,0.6) 0%, rgba(3,8,15,1) 100%); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .winner-name-vfx { font-size: 80px; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--pink); transform: skewX(-10deg); animation: slideIn 0.5s ease-out; }
         .coin { position: absolute; width: 40px; height: 40px; background: var(--yellow); border-radius: 50%; border: 2px solid #b8860b; z-index: 5; animation: coinFall 2.5s linear infinite; }
-
-        /* الواجهة */
         .screen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 100px; width: 100%; }
         .screen.active { display: flex; }
         .card { width: 100%; max-width: 450px; background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); margin-top: 15px; text-align: center; }
-        
         .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
         .btn-cyan { background: var(--cyan); color: #000; }
         .btn-pink { background: var(--pink); color: #fff; }
-        .btn-purple { background: var(--purple); color: #fff; }
-
-        video#aiCamera { width: 100%; border-radius: 15px; border: 2px solid var(--cyan); background: #000; margin-top: 10px; }
-        
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #060d18; display: none; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); z-index: 100; }
         .nav-item { color: rgba(255,255,255,0.3); font-size: 14px; font-weight: 700; cursor: pointer; }
         .nav-item.active { color: var(--cyan); border-bottom: 2px solid var(--cyan); }
-
-        @keyframes coinFall { 0% { transform: translateY(-100vh) rotate(0); opacity:1; } 100% { transform: translateY(100vh) rotate(360deg); opacity:0; } }
-        @keyframes slideIn { from { transform: translateX(100%) skewX(-10deg); opacity:0; } to { transform: translateX(0) skewX(-10deg); opacity:1; } }
+        textarea, input { width: 100%; padding: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--cyan); border-radius: 10px; color: #fff; margin-bottom: 10px; font-family: inherit; }
+        @keyframes coinFall { 0% { transform: translateY(-100vh); opacity:1; } 100% { transform: translateY(100vh); opacity:0; } }
+        @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
     </style>
 </head>
 <body>
 
     <audio id="winnerAudio" src="https://ia800108.us.archive.org/15/items/win_202102/winner.mp3" preload="auto"></audio>
+    <audio id="notifAudio" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
 
     <div class="winner-overlay" id="winnerOverlay">
-        <div style="font-size:20px; color:var(--cyan); letter-spacing:2px">LADIES AND GENTLEMEN...</div>
         <div style="font-size:30px; font-weight:700">WE HAVE A WINNER!</div>
         <div class="winner-name-vfx" id="winnerNameDisplay">HASSAN</div>
         <div id="prizeResult" style="color:var(--yellow); font-size:22px; font-weight:700; margin-top:10px"></div>
@@ -61,44 +43,32 @@
     <div id="sHome" class="screen active">
         <h1 style="font-size:70px; color:var(--cyan); margin-top:60px; font-weight:900">اللعبة</h1>
         <div class="card">
-            <input type="text" id="nameInput" placeholder="اكتب اسمك..." oninput="checkSecretCode(this.value)" style="width:100%; padding:15px; background:rgba(255,255,255,0.05); border:1px solid var(--cyan); border-radius:10px; color:#fff; margin-bottom:10px">
-            <button class="btn btn-cyan" onclick="enterHome()">🎮 ابدأ اللعب وفعّل التنبيهات</button>
+            <input type="text" id="nameInput" placeholder="اكتب اسمك..." oninput="checkSecretCode(this.value)">
+            <button class="btn btn-cyan" onclick="enterHome()">🎮 ابدأ وفعّل الصوت</button>
         </div>
     </div>
 
     <div id="sDaily" class="screen">
-        <h2 style="color:var(--cyan)">تحدي الـ AI الذكي 🤖</h2>
+        <h2 style="color:var(--cyan)">التحديات المتتالية 🤖</h2>
         <div class="card">
-            <p id="dailyTaskText" style="font-size:22px; font-weight:700; margin-bottom:15px">في انتظار تحدي الساعة...</p>
-            <video id="aiCamera" autoplay muted playsinline style="display:none"></video>
-            <button id="startAiBtn" class="btn btn-pink" onclick="startAIJudge()">تشغيل كاميرا التحكيم</button>
-        </div>
-    </div>
-
-    <div id="sReal" class="screen">
-        <h2 style="color:var(--pink)">التحدي الحقيقي 🔥</h2>
-        <div class="card">
-            <p style="margin-bottom:10px">فيديو التحدي الحالي:</p>
-            <div id="videoTaskContainer">
-                <p style="color:rgba(255,255,255,0.3)">لا يوجد فيديو حالياً</p>
-            </div>
+            <p id="dailyTaskText" style="font-size:22px; font-weight:700">جاري تحميل التحدي الصعب...</p>
+            <div id="prizeTag" style="color:var(--yellow); margin-top:10px"></div>
         </div>
     </div>
 
     <div id="sAdmin" class="screen">
         <h2 style="color:var(--purple)">غرفة الإمبراطور 👑</h2>
         <div class="card">
-            <button class="btn btn-cyan" onclick="activateAI(true)">تفعيل تحكم الـ AI التلقائي</button>
-            <button class="btn btn-pink" onclick="activateAI(false)">تحكم يدوي كامل</button>
+            <p>إرسال تحدي يدوي:</p>
+            <textarea id="manualTaskInput" placeholder="اكتب التحدي الصعب هنا..."></textarea>
+            <button class="btn btn-cyan" onclick="sendManualTask()">⚡ إرسال التحدي للكل</button>
         </div>
         <div class="card">
-            <p>إضافة فيديو تحدي (رابط MP4):</p>
-            <input type="text" id="vUrl" placeholder="حط رابط الفيديو هنا">
-            <button class="btn btn-purple" onclick="postVideo()">إرسال الفيديو للكل</button>
+            <button class="btn btn-pink" onclick="sendAiTask()">🤖 خلي الـ AI يختار تحدي صعب</button>
         </div>
         <div class="card">
-            <input type="text" id="manualWin" placeholder="اسم الفائز">
-            <button class="btn btn-pink" onclick="announceWinner()">🏆 إعلان الفوز يدوياً</button>
+            <input type="text" id="winName" placeholder="اسم الفائز">
+            <button class="btn btn-pink" onclick="announceWinner()">🏆 إعلان الفوز</button>
         </div>
     </div>
 
@@ -108,7 +78,6 @@
     </div>
 
     <script>
-        // --- Firebase Setup ---
         firebase.initializeApp({
             apiKey: "AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
             databaseURL: "https://myfootballapp-38010-default-rtdb.firebaseio.com",
@@ -116,19 +85,31 @@
         });
         const db = firebase.database();
 
-        let user = '', uid = '', model = null;
-        const prizeList = ["كارت شحن 50ج", "كيس شيبسي عائلي", "بيبسي كانز", "وجبة كوشيري", "عصير مانجو", "كارت شحن 10ج", "باقة إنترنت"];
+        let user = '', uid = '';
+
+        // مولد الـ 50 ألف تحدي
+        const actions = ["اشرب", "اكل", "اطلع", "نادي", "البس", "اعمل", "كلم", "صور", "اغسل"];
+        const things = ["بصلة نية مع خل", "100 ضغط في دقيقة", "فوق السطوح 'أنا البعبع'", "أصعب مقلب في أبوك", "هدومك بالمقلوب في الشارع", "مكالمة لواحد غريب"];
+        const prizes = ["كارت شحن 50ج", "علبة كشري", "بيبسي كانز", "شيبسي عائلي"];
+
+        function generateTask() {
+            const a = actions[Math.floor(Math.random()*actions.length)];
+            const t = things[Math.floor(Math.random()*things.length)];
+            return a + " " + t;
+        }
 
         function checkSecretCode(v) { if(v.toLowerCase() === 'htpsl') showS('sAdmin'); }
 
-        async function enterHome() {
+        function enterHome() {
             user = document.getElementById('nameInput').value.trim();
             if(!user) return alert("اكتب اسمك!");
             uid = 'u' + Date.now();
-
-            if ("Notification" in window) Notification.requestPermission();
-            const audio = document.getElementById('winnerAudio');
-            audio.play().then(() => { audio.pause(); }).catch(() => {});
+            
+            // تفعيل قناة الصوت فوراً
+            const winAud = document.getElementById('winnerAudio');
+            const notAud = document.getElementById('notifAudio');
+            winAud.play().then(()=>winAud.pause());
+            notAud.play().then(()=>notAud.pause());
 
             document.getElementById('mainNav').style.display = 'flex';
             tab(0);
@@ -136,19 +117,18 @@
         }
 
         function startSync() {
-            // مزامنة التحدي اليومي
-            db.ref('game/daily').on('value', snap => {
+            db.ref('game/task').on('value', snap => {
                 if(snap.exists()) {
                     document.getElementById('dailyTaskText').textContent = snap.val().text;
-                    if (Notification.permission === "granted") new Notification("تحدي جديد!", { body: snap.val().text });
+                    document.getElementById('notifAudio').play();
+                    if(Notification.permission === 'granted') new Notification("تحدي جديد!", {body: snap.val().text});
                 }
             });
 
-            // مزامنة الفوز (الصوت والاسم والجوائز)
             db.ref('game/winner').on('value', snap => {
                 if(snap.exists()) {
                     const d = snap.val();
-                    if(d.ts > Date.now() - 10000) {
+                    if(d.ts > Date.now() - 5000) {
                         document.getElementById('winnerOverlay').style.display = 'flex';
                         document.getElementById('winnerNameDisplay').textContent = d.name;
                         document.getElementById('prizeResult').textContent = "الجائزة: " + d.prize;
@@ -157,72 +137,41 @@
                     }
                 }
             });
-
-            // مزامنة الفيديوهات
-            db.ref('game/videoTask').on('value', snap => {
-                if(snap.exists()) {
-                    document.getElementById('videoTaskContainer').innerHTML = `<video src="${snap.val().url}" controls style="width:100%; border-radius:10px"></video>`;
-                }
-            });
         }
 
-        // --- وظائف الـ AI والتحكيم ---
-        async function startAIJudge() {
-            const video = document.getElementById('aiCamera');
-            video.style.display = 'block';
-            document.getElementById('startAiBtn').style.display = 'none';
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
-            
-            document.getElementById('dailyTaskText').textContent = "🤖 الـ AI يحلل حركتك الآن...";
-            model = await cocoSsd.load();
-            detectMotion(video);
+        // وظائف الإمبراطور
+        function sendManualTask() {
+            const val = document.getElementById('manualTaskInput').value;
+            if(!val) return alert("اكتب التحدي أولاً!");
+            db.ref('game/task').set({ text: val, ts: Date.now() });
+            document.getElementById('manualTaskInput').value = '';
         }
 
-        async function detectMotion(video) {
-            const predictions = await model.detect(video);
-            // لو الـ AI لقى الشخص بيتحرك بنسبة معينة
-            if (predictions.length > 0 && predictions[0].class === 'person') {
-                if(Math.random() > 0.98) { // نسبة عشوائية لمحاكاة الفوز بعد التنفيذ
-                    db.ref('game/winner').set({
-                        name: user.toUpperCase(),
-                        prize: prizeList[Math.floor(Math.random()*prizeList.length)],
-                        ts: Date.now()
-                    });
-                }
-            }
-            requestAnimationFrame(() => detectMotion(video));
-        }
-
-        function activateAI(isOn) {
-            if(isOn) db.ref('game/daily').set({ text: "🤖 الـ AI أمرك بالوقوف أمام الكاميرا 10 ثواني!", ts: Date.now() });
-            alert(isOn ? "الـ AI يقود اللعبة الآن" : "التحكم يدوي");
-        }
-
-        function postVideo() {
-            const url = document.getElementById('vUrl').value;
-            db.ref('game/videoTask').set({ url: url, ts: Date.now() });
+        function sendAiTask() {
+            db.ref('game/task').set({ text: "🤖 تحدي الـ AI الصعب: " + generateTask(), ts: Date.now() });
         }
 
         function announceWinner() {
-            const n = document.getElementById('manualWin').value || "HASSAN";
-            db.ref('game/winner').set({ name: n.toUpperCase(), prize: "جائزة الإمبراطور", ts: Date.now() });
+            const n = document.getElementById('winName').value || "HASSAN";
+            db.ref('game/winner').set({
+                name: n.toUpperCase(),
+                prize: prizes[Math.floor(Math.random()*prizes.length)],
+                ts: Date.now()
+            });
         }
 
         function createCoin() {
             let c = document.createElement('div');
             c.className = 'coin';
             c.style.left = Math.random() * 100 + 'vw';
-            c.style.animationDelay = Math.random() * 2 + 's';
             document.getElementById('winnerOverlay').appendChild(c);
             setTimeout(() => c.remove(), 2500);
         }
 
-        function tab(n) { showS(n===0 ? 'sDaily' : 'sReal'); }
+        function tab(n) { showS(n===0 ? 'sDaily' : 'sHome'); }
         function showS(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach((el,i)=> el.classList.toggle('active', i=== (id==='sDaily'?0:1)));
         }
     </script>
 </body>
