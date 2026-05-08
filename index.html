@@ -3,45 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>اللعبة - تحكيم الذكاء الاصطناعي</title>
+    <title>اللعبة - النظام المتكامل (Leveling & Live AI)</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-    
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 
     <style>
         :root { --cyan: #00f5ff; --pink: #ff006e; --purple: #8338ec; --yellow: #ffd60a; --bg: #03080f; --card: #0a1628; }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); font-family: 'Cairo', sans-serif; color: #fff; min-height: 100vh; overflow-x: hidden; }
         
-        .winner-overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(255,0,110,0.8) 0%, rgba(3,8,15,1) 100%); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .winner-name-vfx { font-size: 80px; font-weight: 900; color: #fff; text-shadow: 0 0 30px var(--cyan), 0 0 50px var(--pink); transform: skewX(-10deg); animation: slideIn 0.5s ease-out; margin-bottom: 10px; }
-        .coin { position: absolute; width: 45px; height: 45px; background: var(--yellow); border-radius: 50%; border: 3px solid #b8860b; z-index: 5; animation: coinFall 2.5s linear infinite; box-shadow: 0 0 15px var(--yellow); }
-
+        .winner-overlay { position: fixed; inset: 0; background: radial-gradient(circle, rgba(255,0,110,0.85) 0%, rgba(0,0,0,1) 100%); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .winner-name-vfx { font-size: 70px; font-weight: 900; color: #fff; text-shadow: 0 0 40px var(--cyan); transform: skewX(-10deg); animation: slideIn 0.5s ease-out; margin-bottom: 10px; }
+        
         .screen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 100px; width: 100%; }
         .screen.active { display: flex; }
-        .card { width: 100%; max-width: 500px; background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); margin-top: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { width: 100%; max-width: 500px; background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); margin-top: 15px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         
-        .btn { width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; margin-top: 12px; transition: 0.3s; font-size: 18px; }
-        .btn:active { transform: scale(0.95); }
-        .btn-cyan { background: var(--cyan); color: #000; box-shadow: 0 0 15px rgba(0, 245, 255, 0.4); }
-        .btn-pink { background: var(--pink); color: #fff; box-shadow: 0 0 15px rgba(255, 0, 110, 0.4); }
-        .btn-purple { background: var(--purple); color: #fff; box-shadow: 0 0 15px rgba(131, 56, 236, 0.4); }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; margin-top: 10px; font-size: 16px; transition: 0.3s; }
+        .btn-cyan { background: var(--cyan); color: #000; }
+        .btn-pink { background: var(--pink); color: #fff; }
+        .btn-purple { background: var(--purple); color: #fff; }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #060d18; display: none; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); z-index: 100; }
-        .nav-item { color: rgba(255,255,255,0.3); font-size: 15px; font-weight: 900; cursor: pointer; }
+        input[type="text"] { width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: 2px solid var(--cyan); border-radius: 10px; color: #fff; margin-bottom: 10px; font-family: inherit; font-size: 16px; outline: none; }
+        
+        /* كاميرا التتبع اللايف */
+        #liveCamera { width: 100%; border-radius: 15px; border: 3px solid var(--purple); margin-top: 15px; display: none; transform: scaleX(-1); }
+        #motionBar { width: 100%; height: 20px; background: #333; border-radius: 10px; margin-top: 10px; overflow: hidden; display: none; }
+        #motionFill { height: 100%; width: 0%; background: var(--green); transition: width 0.2s; }
+        
+        /* نافذة تحديد اللاعب */
+        #whoIsPlaying { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #060d18; display: none; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); z-index: 100; }
+        .nav-item { color: rgba(255,255,255,0.3); font-size: 14px; font-weight: 900; cursor: pointer; }
         .nav-item.active { color: var(--cyan); }
 
-        textarea, input[type="text"] { width: 100%; padding: 15px; background: rgba(255,255,255,0.05); border: 2px solid rgba(0,245,255,0.3); border-radius: 12px; color: #fff; margin-bottom: 12px; font-family: inherit; font-size: 16px; outline: none; }
-        
-        .upload-area { margin-top: 15px; padding: 15px; border: 2px dashed var(--cyan); border-radius: 15px; background: rgba(0,245,255,0.05); display: none; }
-        #photoPreview { width: 100%; border-radius: 10px; margin-top: 10px; display: none; border: 2px solid var(--purple); }
-        #aiStatus { color: var(--yellow); font-weight: bold; margin-top: 10px; font-size: 14px; }
-
-        @keyframes coinFall { 0% { transform: translateY(-100vh) rotate(0); } 100% { transform: translateY(110vh) rotate(720deg); } }
         @keyframes slideIn { from { transform: translateX(120%) skewX(-15deg); opacity: 0; } to { transform: translateX(0) skewX(-10deg); opacity: 1; } }
     </style>
 </head>
@@ -51,270 +48,232 @@
     <audio id="notifAudio" src="https://www.soundjay.com/buttons/sounds/button-09.mp3" preload="auto"></audio>
 
     <div class="winner-overlay" id="winnerOverlay">
-        <div style="font-size:22px; color:var(--cyan); letter-spacing:4px; margin-bottom:10px">LADIES AND GENTLEMEN...</div>
+        <div style="font-size:22px; color:var(--cyan); letter-spacing:4px">LADIES AND GENTLEMEN...</div>
         <div style="font-size:35px; font-weight:900">WE HAVE A WINNER!</div>
         <div class="winner-name-vfx" id="winnerNameDisplay">HASSAN</div>
-        <div id="prizeResult" style="color:var(--yellow); font-size:24px; font-weight:900; margin-top:15px; border: 2px dashed var(--yellow); padding: 15px; border-radius: 10px; background: rgba(0,0,0,0.5);"></div>
-        <button class="btn btn-cyan" style="width:200px; margin-top:40px" onclick="document.getElementById('winnerOverlay').style.display='none'">استمرار اللعب</button>
+        <div id="prizeResult" style="color:var(--yellow); font-size:22px; font-weight:900; margin-top:15px;"></div>
+        <button class="btn btn-cyan" style="width:200px; margin-top:30px" onclick="nextLevel()">التالي ⏭️</button>
+    </div>
+
+    <div id="whoIsPlaying">
+        <div class="card" style="background: var(--pink);">
+            <h2 style="color: #fff; margin-bottom: 15px;">رصدنا شخص قدام الكاميرا! 📸</h2>
+            <p style="margin-bottom: 15px;">مين اللي هينفذ التحدي دلوقتي؟</p>
+            <input type="text" id="currentPlayerName" placeholder="اكتب اسم اللاعب الحالي...">
+            <button class="btn btn-cyan" onclick="confirmPlayer()">أنا جاهز للتنفيذ!</button>
+        </div>
     </div>
 
     <div id="sHome" class="screen active">
-        <h1 style="font-size:80px; color:var(--cyan); margin-top:80px; font-weight:900; text-shadow: 0 0 30px var(--cyan);">اللعبة</h1>
+        <h1 style="font-size:80px; color:var(--cyan); margin-top:60px; font-weight:900;">اللعبة</h1>
         <div class="card">
-            <input type="text" id="nameInput" placeholder="اكتب اسمك للمنافسة..." oninput="checkSecretCode(this.value)">
-            <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول (وتفعيل الصوت والإشعارات)</button>
+            <input type="text" id="nameInput" placeholder="اكتب اسمك الأساسي...">
+            <button class="btn btn-cyan" onclick="enterHome()">🎮 دخول النظام</button>
         </div>
     </div>
 
     <div id="sDaily" class="screen">
-        <h2 style="color:var(--cyan); margin-bottom:10px">تحدي الـ AI الذكي 🤖</h2>
+        <div style="display:flex; justify-content:space-between; width:100%; max-width:500px; margin-bottom:10px;">
+            <h2 style="color:var(--cyan)">التحدي الحالي</h2>
+            <h2 style="color:var(--yellow)">مستوى: <span id="levelDisplay">1</span></h2>
+        </div>
         <div class="card">
-            <div style="font-size:50px">💎</div>
-            <p id="dailyTaskText" style="font-size:22px; font-weight:900; margin:20px 0; line-height:1.5">في انتظار أوامر النظام...</p>
-            <div id="prizeTag" style="background: rgba(255,214,10,0.15); color:var(--yellow); padding: 12px; border-radius: 10px; font-weight: 700;"></div>
+            <p id="dailyTaskText" style="font-size:24px; font-weight:900; margin:10px 0; line-height:1.5">جاري تحميل المستوى...</p>
+            <p id="prizeTag" style="color:var(--pink); font-weight:bold; margin-bottom: 15px;"></p>
             
-            <div class="upload-area" id="uploadSection">
-                <p style="color:var(--cyan); font-weight:bold; margin-bottom:5px;">التحدي ده محتاج دليل! 📸</p>
-                <p id="aiStatus">🤖 الـ AI نايم...</p>
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" onchange="processPhoto(event)">
-                <button class="btn btn-purple" onclick="document.getElementById('cameraInput').click()">📸 صور الدليل دلوقتي</button>
-                <img id="photoPreview" crossorigin="anonymous">
-                <button id="sendPhotoBtn" class="btn btn-pink" style="display:none;" onclick="submitToAI()">🤖 ابعت للـ AI يحكم</button>
-            </div>
+            <video id="liveCamera" autoplay muted playsinline></video>
+            <canvas id="motionCanvas" style="display:none;"></canvas>
+            
+            <div id="motionBar"><div id="motionFill"></div></div>
+            <p id="aiFeedback" style="color:var(--cyan); font-weight:bold; margin-top:10px; display:none;">🤖 الـ AI يراقب حركتك...</p>
+
+            <button id="startChallengeBtn" class="btn btn-purple" onclick="startLiveChallenge()">🔥 ابدأ تنفيذ التحدي</button>
         </div>
     </div>
 
-    <div id="sAdmin" class="screen">
-        <h2 style="color:var(--purple)">غرفة تحكم الإمبراطور 👑</h2>
-        <div class="card">
-            <p style="color:gray; font-size:14px; margin-bottom:10px;">لو كتبت كلمة "صور" في التحدي، الكاميرا هتفتح عند اللاعبين والـ AI هيحكم!</p>
-            <textarea id="manualTaskInput" placeholder="اكتب التحدي الذكي هنا..."></textarea>
-            <button class="btn btn-cyan" onclick="sendManualTask()">⚡ إرسال التحدي للجميع</button>
-        </div>
-        <div class="card">
-            <button class="btn btn-pink" onclick="sendAiTask()">🤖 توليد تحدي وجائزة عشوائية فوراً</button>
-        </div>
-        <div class="card">
-            <input type="text" id="winName" placeholder="إعلان فوز يدوي لأي شخص">
-            <button class="btn btn-purple" onclick="announceWinner()">🏆 إعلان الفوز إجبارياً</button>
+    <div id="sLeaderboard" class="screen">
+        <h2 style="color:var(--yellow); margin-bottom:15px">🏆 لوحة الشرف</h2>
+        <div class="card" id="leaderboardList">
+            <p>جاري تحميل الأبطال...</p>
         </div>
     </div>
 
     <div class="bottom-nav" id="mainNav">
-        <div class="nav-item active" onclick="tab(0)">📅 التحديات</div>
-        <div class="nav-item" onclick="tab(1)">🔥 المواجهات</div>
+        <div class="nav-item active" onclick="tab(0)">المستويات</div>
+        <div class="nav-item" onclick="tab(1)">لوحة الشرف</div>
     </div>
 
     <script>
-        // إعدادات Firebase
         firebase.initializeApp({
             apiKey: "AIzaSyC4OKYd0wLOY_G-Vjs0oBa2d1TgFO8BHl8",
             databaseURL: "https://myfootballapp-38010-default-rtdb.firebaseio.com",
             projectId: "myfootballapp-38010",
         });
         const db = firebase.database();
-        let user = '', uid = '';
-        
-        // متغيرات الـ AI
-        let aiModel = null;
-        let currentPhotoLoaded = false;
+        let mainUser = '', activePlayer = '', currentLevel = 1;
+        let motionInterval = null, videoStream = null;
 
-        // قاعدة بيانات التحديات والجوائز (50 ألف احتمال)
-        const taskLogic = {
-            physical: ["اعمل 20 ضغط في دقيقة", "اجري في مكانك بسرعة"],
-            comedy: ["صور نفسك وأنت لابس شراب في إيدك كأنه جوانتي", "صور نفسك وأنت حاطط قلم فوق شفايفك كأنه شنب"],
-            skill: ["صور أقرب قطة أو حيوان أليف ليك", "صور طبق أكل متنسق بشكل حلو"],
-            dare: ["صور نفسك وأنت عامل رياكشن مصدوم جداً", "صور نفسك وأنت لابس نضارة شمس في الضلمة"]
-        };
-        const prizeLogic = {
-            cash: ["كارت شحن 100 جنيه", "50 جنيه رصيد فوري", "تحويل 30 جنيه فودافون كاش"],
-            food: ["وجبة كشري سوبر", "بيتزا وسط", "شيبسي عائلي ومشروب"],
-            tech: ["سماعة أذن سلكية", "وصلة شحن أصلية", "جراب موبايل"]
-        };
-
-        function generateUniquePair() {
-            const keys = Object.keys(taskLogic);
-            const pKeys = Object.keys(prizeLogic);
-            const rType = keys[Math.floor(Math.random() * keys.length)];
-            const rPrize = pKeys[Math.floor(Math.random() * pKeys.length)];
-            const task = taskLogic[rType][Math.floor(Math.random() * taskLogic[rType].length)];
-            const prize = prizeLogic[rPrize][Math.floor(Math.random() * prizeLogic[rPrize].length)];
-            return { text: `[تحدي ${Math.floor(Math.random() * 1000)}]: ${task}`, prize: `الجائزة: ${prize}` };
+        // محرك توليد المستويات الصعبة المتصاعدة (50 ألف مستوى)
+        function getLevelData(level) {
+            const difficulties = ["قف على قدم واحدة", "اركض في مكانك", "اعمل ضغط", "اقفز بشكل متواصل", "حرك ذراعيك بقوة"];
+            const modifiers = ["مغمض العينين", "وأنت تغني", "بسرعة جنونية", "بدون توقف نهائيا", "وأنت تعد للخلف"];
+            const baseTask = difficulties[level % difficulties.length];
+            const modTask = modifiers[Math.floor((level / 5)) % modifiers.length] || modifiers[0];
+            
+            return {
+                text: `مهمة ${level}: ${baseTask} ${modTask} لمدة 10 ثواني أمام الكاميرا!`,
+                prize: `جائزة مستوى ${level}: ${Math.floor(Math.random()*150)} جنيه رصيد`,
+                duration: 10 // ثواني للتنفيذ
+            };
         }
-
-        function checkSecretCode(v) { if(v.toLowerCase() === 'htpsl') showS('sAdmin'); }
 
         async function enterHome() {
-            user = document.getElementById('nameInput').value.trim();
-            if(!user) return alert("اكتب اسمك للمشاركة!");
-            uid = 'u' + Date.now();
+            mainUser = document.getElementById('nameInput').value.trim();
+            if(!mainUser) return;
             
-            // 1. فتح قناة الصوت إجبارياً
+            // تصاريح إجبارية
             const wAudio = document.getElementById('winnerAudio');
             const nAudio = document.getElementById('notifAudio');
-            wAudio.play().then(()=> wAudio.pause()).catch(e=>console.log(e));
-            nAudio.play().then(()=> nAudio.pause()).catch(e=>console.log(e));
-
-            // 2. طلب الإشعارات إجبارياً
-            if ("Notification" in window && Notification.permission !== "granted") {
-                await Notification.requestPermission();
-            }
+            wAudio.play().then(()=> wAudio.pause()).catch(()=>{});
+            nAudio.play().then(()=> nAudio.pause()).catch(()=>{});
+            if ("Notification" in window) await Notification.requestPermission();
 
             document.getElementById('mainNav').style.display = 'flex';
-            tab(0);
-            startSync();
-        }
-
-        function startSync() {
-            // استقبال التحديات
-            db.ref('game/task').on('value', snap => {
-                if(snap.exists()) {
-                    const data = snap.val();
-                    document.getElementById('dailyTaskText').textContent = data.text;
-                    document.getElementById('prizeTag').textContent = data.prize;
-                    
-                    // تشغيل صوت الإشعار وإرسال Notification حقيقي
-                    document.getElementById('notifAudio').play().catch(e=>console.log(e));
-                    if(Notification.permission === 'granted') {
-                        new Notification("تحدي جديد للإمبراطور! 👑", { body: data.text });
-                    }
-                    
-                    // إظهار قسم الكاميرا والـ AI لو فيه كلمة "صور"
-                    if(data.text.includes('صور') || data.text.includes('صورة')) {
-                        document.getElementById('uploadSection').style.display = 'block';
-                        document.getElementById('photoPreview').style.display = 'none';
-                        document.getElementById('sendPhotoBtn').style.display = 'none';
-                        currentPhotoLoaded = false;
-                        loadAIModel(); // تحميل عقل الذكاء الاصطناعي في الخلفية
-                    } else {
-                        document.getElementById('uploadSection').style.display = 'none';
-                    }
-                }
-            });
-
-            // استقبال الفوز (الصوت والأنيميشن)
-            db.ref('game/winner').on('value', snap => {
-                if(snap.exists()) {
-                    const d = snap.val();
-                    if(d.ts > Date.now() - 5000) { // عشان ما يشتغلش لو عملت ريفريش
-                        document.getElementById('winnerOverlay').style.display = 'flex';
-                        document.getElementById('winnerNameDisplay').textContent = d.name;
-                        document.getElementById('prizeResult').textContent = d.prize;
-                        
-                        // تشغيل الصوت الحماسي!
-                        const winAudio = document.getElementById('winnerAudio');
-                        winAudio.currentTime = 0;
-                        winAudio.play().catch(e=>console.log("الصوت محتاج تفاعل"));
-                        
-                        for(let i=0; i<40; i++) createCoin();
-                    }
-                }
-            });
-        }
-
-        // --- نظام الـ AI لتحليل الصور ---
-        async function loadAIModel() {
-            if(!aiModel) {
-                document.getElementById('aiStatus').textContent = "🤖 جاري تحميل عقل الـ AI...";
-                try {
-                    aiModel = await cocoSsd.load();
-                    document.getElementById('aiStatus').textContent = "🤖 الـ AI جاهز للتحكيم!";
-                } catch(e) {
-                    document.getElementById('aiStatus').textContent = "⚠️ خطأ في تشغيل الـ AI.";
-                }
-            }
-        }
-
-        function processPhoto(event) {
-            const file = event.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgEl = document.getElementById('photoPreview');
-                imgEl.onload = function() {
-                    currentPhotoLoaded = true;
-                    imgEl.style.display = 'block';
-                    document.getElementById('sendPhotoBtn').style.display = 'block';
-                    document.getElementById('sendPhotoBtn').textContent = "🤖 ابعت للـ AI يحكم";
-                    document.getElementById('sendPhotoBtn').disabled = false;
-                }
-                imgEl.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
-        }
-
-        async function submitToAI() {
-            if(!currentPhotoLoaded || !aiModel) return;
-            const btn = document.getElementById('sendPhotoBtn');
-            btn.textContent = "⏳ الـ AI بيحلل تفاصيل الصورة...";
-            btn.disabled = true;
-
-            const imgEl = document.getElementById('photoPreview');
-            const predictions = await aiModel.detect(imgEl);
             
-            // لو الـ AI لقى أي شيء في الصورة (أو نعديها كـ "مقبولة" عشان اللعب يكمل)
-            let isAccepted = false;
-            if(predictions.length > 0) {
-                isAccepted = true; 
-            } else if(Math.random() > 0.2) { 
-                // نسبة 80% قبول عشان لو الموديل معرفش يتعرف على الحاجة اللعبة متوقفش
-                isAccepted = true; 
-            }
+            // تحميل مستوى اللاعب من الداتا بيز
+            db.ref('game/players/' + mainUser).once('value', snap => {
+                if(snap.exists()) currentLevel = snap.val().level || 1;
+                loadLevel(currentLevel);
+            });
+            
+            tab(0);
+            updateLeaderboard();
+        }
 
-            setTimeout(() => {
-                if(isAccepted) {
-                    // الـ AI أعلن فوزك! هيبعت لقاعدة البيانات فوراً
-                    db.ref('game/task').once('value', snap => {
-                        const currentPrize = snap.exists() ? snap.val().prize : "جائزة الـ AI الذكي";
-                        db.ref('game/winner').set({
-                            name: user.toUpperCase(),
-                            prize: currentPrize,
-                            ts: Date.now()
-                        });
-                    });
-                } else {
-                    alert("🤖 الـ AI: الصورة مش واضحة أو مش مطابقة للتحدي! صور بدقة أحسن.");
-                    btn.textContent = "🚀 صور وابعت تاني";
-                    btn.disabled = false;
+        function loadLevel(lvl) {
+            const data = getLevelData(lvl);
+            document.getElementById('levelDisplay').textContent = lvl;
+            document.getElementById('dailyTaskText').textContent = data.text;
+            document.getElementById('prizeTag').textContent = data.prize;
+            document.getElementById('startChallengeBtn').style.display = 'block';
+            document.getElementById('liveCamera').style.display = 'none';
+            document.getElementById('motionBar').style.display = 'none';
+            document.getElementById('aiFeedback').style.display = 'none';
+        }
+
+        // --- نظام الكاميرا والتتبع اللايف ---
+        async function startLiveChallenge() {
+            document.getElementById('startChallengeBtn').style.display = 'none';
+            const video = document.getElementById('liveCamera');
+            video.style.display = 'block';
+            
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = videoStream;
+                
+                // أول ما الكاميرا تفتح، نوقف اللعبة ونسأل: مين اللي هيلعب؟
+                setTimeout(() => {
+                    document.getElementById('whoIsPlaying').style.display = 'flex';
+                }, 1500);
+
+            } catch (err) { alert("لازم توافق على الكاميرا عشان تنفذ التحدي!"); }
+        }
+
+        function confirmPlayer() {
+            activePlayer = document.getElementById('currentPlayerName').value.trim() || mainUser;
+            document.getElementById('whoIsPlaying').style.display = 'none';
+            document.getElementById('motionBar').style.display = 'block';
+            document.getElementById('aiFeedback').style.display = 'block';
+            startMotionDetection();
+        }
+
+        // محرك تتبع الحركة بكسل بكسل (بديل الـ AI التقيل)
+        function startMotionDetection() {
+            const video = document.getElementById('liveCamera');
+            const canvas = document.getElementById('motionCanvas');
+            const ctx = canvas.getContext('2d');
+            let lastImageData = null;
+            let timeElapsed = 0;
+            const requiredTime = 100; // 10 ثواني (كل 100ms)
+
+            motionInterval = setInterval(() => {
+                canvas.width = video.videoWidth / 4; // تصغير للسرعة
+                canvas.height = video.videoHeight / 4;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const currentData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                if (lastImageData) {
+                    let motionScore = 0;
+                    for (let i = 0; i < currentData.data.length; i += 4) {
+                        const diff = Math.abs(currentData.data[i] - lastImageData.data[i]);
+                        if (diff > 30) motionScore++; // لو في تغيير في البيكسل
+                    }
+                    
+                    // لو في حركة قوية
+                    if (motionScore > 100) {
+                        timeElapsed++;
+                        document.getElementById('motionFill').style.width = (timeElapsed) + '%';
+                        document.getElementById('aiFeedback').textContent = "🤖 ممتاز! استمر في الحركة...";
+                        document.getElementById('aiFeedback').style.color = "var(--green)";
+                        
+                        if (timeElapsed >= requiredTime) {
+                            clearInterval(motionInterval);
+                            challengeSuccess();
+                        }
+                    } else {
+                        // لو وقف
+                        timeElapsed = Math.max(0, timeElapsed - 2); 
+                        document.getElementById('motionFill').style.width = timeElapsed + '%';
+                        document.getElementById('aiFeedback').textContent = "⚠️ الـ AI: إنت وقفت ليه؟! حركتك ضعيفة!";
+                        document.getElementById('aiFeedback').style.color = "var(--pink)";
+                    }
                 }
-            }, 1500); // تأخير بسيط عشان اللاعب يحس بإن الـ AI بيفكر
+                lastImageData = currentData;
+            }, 100);
         }
 
-        // --- وظائف الإمبراطور ---
-        function sendManualTask() {
-            const val = document.getElementById('manualTaskInput').value;
-            if(!val) return;
-            db.ref('game/task').set({ text: val, prize: "جائزة الإمبراطور الكبرى", ts: Date.now() });
-            document.getElementById('manualTaskInput').value = '';
+        function challengeSuccess() {
+            if(videoStream) videoStream.getTracks().forEach(track => track.stop());
+            const data = getLevelData(currentLevel);
+            
+            // تسجيل الفوز
+            db.ref('game/players/' + activePlayer).set({ level: currentLevel + 1, ts: Date.now() });
+            
+            document.getElementById('winnerOverlay').style.display = 'flex';
+            document.getElementById('winnerNameDisplay').textContent = activePlayer.toUpperCase();
+            document.getElementById('prizeResult').textContent = data.prize;
+            document.getElementById('winnerAudio').play();
+            
+            // إرسال إشعار للكل إن في بطل كسب
+            db.ref('game/globalFeed').set({ msg: `${activePlayer} اجتاز المستوى ${currentLevel}!`, ts: Date.now() });
         }
 
-        function sendAiTask() {
-            const pair = generateUniquePair();
-            db.ref('game/task').set({ text: pair.text, prize: pair.prize, ts: Date.now() });
+        function nextLevel() {
+            document.getElementById('winnerOverlay').style.display = 'none';
+            currentLevel++;
+            loadLevel(currentLevel);
         }
 
-        function announceWinner() {
-            const n = document.getElementById('winName').value || "HASSAN";
-            db.ref('game/task').once('value', snap => {
-                const currentPrize = snap.exists() ? snap.val().prize : "جائزة مفاجأة";
-                db.ref('game/winner').set({ name: n.toUpperCase(), prize: currentPrize, ts: Date.now() });
+        function updateLeaderboard() {
+            db.ref('game/players').orderByChild('level').on('value', snap => {
+                if(snap.exists()) {
+                    let html = '';
+                    let arr = [];
+                    snap.forEach(child => { arr.push({name: child.key, level: child.val().level}); });
+                    arr.reverse(); // من الأكبر للأصغر
+                    arr.forEach((p, index) => {
+                        html += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:10px 0;">
+                            <span>${index===0?'👑 ':''}${p.name}</span>
+                            <span style="color:var(--cyan)">مستوى ${p.level}</span>
+                        </div>`;
+                    });
+                    document.getElementById('leaderboardList').innerHTML = html;
+                }
             });
         }
 
-        function createCoin() {
-            let c = document.createElement('div');
-            c.className = 'coin';
-            c.style.left = Math.random() * 100 + 'vw';
-            c.style.animationDelay = Math.random() * 2 + 's';
-            document.getElementById('winnerOverlay').appendChild(c);
-            setTimeout(() => c.remove(), 2500);
-        }
-
-        function tab(n) { showS(n===0 ? 'sDaily' : 'sHome'); }
-        function showS(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
+        function tab(n) { showS(n===0 ? 'sDaily' : 'sLeaderboard'); document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active', i===n)); }
+        function showS(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
     </script>
 </body>
 </html>
